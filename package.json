@@ -2,6 +2,23 @@
   "name": "annal",
   "version": "0.0.1",
   "description": "A lightweight logger library for JavaScript",
+  "keywords": [
+    "console",
+    "debug",
+    "debugger",
+    "log",
+    "logger",
+    "logging",
+    "slog"
+  ],
+  "homepage": "https://github.com/xueelf/annal",
+  "bugs": {
+    "url": "https://github.com/xueelf/annal/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xueelf/annal.git"
+  },
   "license": "MIT",
   "author": "Yuki <admin@yuki.sh>",
   "type": "module",
