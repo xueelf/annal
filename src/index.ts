@@ -128,6 +128,7 @@ function buildPrefix(level: Level, scope: string): string {
   const time = new Date().toISOString();
   const label = levelLabel(level);
   const tail = scope ? `${scope} -` : '-';
+
   return `[${time}] ${label} ${tail}`;
 }
 
@@ -149,6 +150,7 @@ const writer: Writer = (() => {
     document?: unknown;
     process?: { stdout?: unknown };
   };
+
   if (typeof global.document !== 'undefined') {
     return cssWriter;
   }
@@ -264,6 +266,7 @@ export class Journal {
       return this;
     }
     const scope = this.scope ? `${this.scope}:${name}` : name;
+
     return new Journal({
       level: options.level ?? this.level,
       scope,
