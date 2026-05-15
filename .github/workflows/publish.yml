@@ -26,6 +26,8 @@ jobs:
         run: bun run lint
 
       - name: Test
+        env:
+          FORCE_COLOR: '3'
         run: bun test
 
   publish:
