@@ -12,7 +12,7 @@
         "eslint": "^10.2.1",
         "husky": "^9.1.7",
         "prettier": "^3.8.3",
-        "prettier-plugin-sort": "^0.1.0",
+        "prettier-plugin-sort": "^0.2.0",
         "typescript-eslint": "^8.59.1",
       },
       "peerDependencies": {
@@ -293,7 +293,7 @@
 
     "prettier": ["prettier@3.8.3", "", { "bin": { "prettier": "bin/prettier.cjs" } }, "sha512-7igPTM53cGHMW8xWuVTydi2KO233VFiTNyF5hLJqpilHfmn8C8gPf+PS7dUT64YcXFbiMGZxS9pCSxL/Dxm/Jw=="],
 
-    "prettier-plugin-sort": ["prettier-plugin-sort@0.1.0", "", { "peerDependencies": { "prettier": ">=3.0.0" } }, "sha512-D7pOHeLNy0C1cQrhuzcP3XX4n9g2gs6OcW/TXQOwQgMr0Agnznh1C9BN6Fx8anMfiCL7u6+P6AHUKXsUmk3tow=="],
+    "prettier-plugin-sort": ["prettier-plugin-sort@0.2.0", "", { "peerDependencies": { "prettier": ">=3.0.0" } }, "sha512-+cNNNaAu8N91P1rWCIzCFwdkmiactbUao+6MxOlqSg7aZDgi3frhh5l05MiOiFk1rC5tluScGZd6uf71YSSMlg=="],
 
     "punycode": ["punycode@2.3.1", "", {}, "sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg=="],
 
