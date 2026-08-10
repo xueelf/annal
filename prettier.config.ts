@@ -1,4 +1,5 @@
 import { type Config } from 'prettier';
+import { type SortOptions } from 'prettier-plugin-sort';
 
 export default {
   tabWidth: 2,
@@ -9,5 +10,5 @@ export default {
   arrowParens: 'avoid',
   endOfLine: 'lf',
   plugins: ['prettier-plugin-sort'],
-  importOrderTypeImports: 'inline-first',
-} satisfies Config;
+  esmImportTypeStyle: 'inline-first',
+} satisfies Config & SortOptions;

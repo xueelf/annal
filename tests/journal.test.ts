@@ -17,7 +17,7 @@ import {
   LevelError,
   LevelInfo,
   LevelWarn,
-} from '../../src/index.ts';
+} from '../src/index.ts';
 
 // Strip ANSI escape sequences so assertions remain platform-agnostic.
 const ANSI = new RegExp(String.fromCharCode(0x1b) + '\\[[0-9;]*m', 'g');
