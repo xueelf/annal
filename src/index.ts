@@ -109,7 +109,7 @@ function cssOf(level: Level): string {
   return 'color:#06b6d4;font-weight:bold';
 }
 
-function consoleMethod(level: Level): (...args: unknown[]) => void {
+function printerFor(level: Level): (...args: unknown[]) => void {
   if (level >= LevelError) {
     return console.error;
   }
@@ -125,24 +125,44 @@ function consoleMethod(level: Level): (...args: unknown[]) => void {
 type Writer = (level: Level, scope: string, args: unknown[]) => void;
 
 function buildPrefix(level: Level, scope: string): string {
-  const time = new Date().toISOString();
+  const timestamp = new Date().toISOString();
   const label = levelLabel(level);
   const tail = scope ? `${scope} -` : '-';
 
-  return `[${time}] ${label} ${tail}`;
+  return `[${timestamp}] ${label} ${tail}`;
+}
+
+function writeWithPrefix(
+  level: Level,
+  template: string,
+  values: unknown[],
+  args: unknown[],
+): void {
+  const [first, ...rest] = args;
+
+  if (typeof first === 'string') {
+    printerFor(level)(`${template} ${first}`, ...values, ...rest);
+    return;
+  }
+  printerFor(level)(template, ...values, ...args);
 }
 
 const ansiWriter: Writer = (level, scope, args) => {
   const prefix = `${ansiOf(level)}${buildPrefix(level, scope)}${ANSI_RESET}`;
-  consoleMethod(level)(prefix, ...args);
+  writeWithPrefix(level, '%s', [prefix], args);
 };
 
 const cssWriter: Writer = (level, scope, args) => {
-  consoleMethod(level)(`%c${buildPrefix(level, scope)}`, cssOf(level), ...args);
+  writeWithPrefix(
+    level,
+    '%c%s%c',
+    [cssOf(level), buildPrefix(level, scope), ''],
+    args,
+  );
 };
 
 const plainWriter: Writer = (level, scope, args) => {
-  consoleMethod(level)(buildPrefix(level, scope), ...args);
+  writeWithPrefix(level, '%s', [buildPrefix(level, scope)], args);
 };
 
 const writer: Writer = (() => {
