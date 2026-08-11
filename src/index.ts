@@ -134,35 +134,43 @@ function buildPrefix(level: Level, scope: string): string {
 
 function writeWithPrefix(
   level: Level,
-  template: string,
-  values: unknown[],
+  prefix: string,
   args: unknown[],
+  style?: string,
 ): void {
+  const printer = printerFor(level);
   const [first, ...rest] = args;
 
-  if (typeof first === 'string') {
-    printerFor(level)(`${template} ${first}`, ...values, ...rest);
+  if (style !== undefined) {
+    if (typeof first === 'string') {
+      printer(`%c%s%c ${first}`, style, prefix, '', ...rest);
+      return;
+    }
+    printer('%c%s%c', style, prefix, '', ...args);
     return;
   }
-  printerFor(level)(template, ...values, ...args);
+  if (typeof first === 'string') {
+    if (rest.length === 0) {
+      printer(`${prefix} ${first}`);
+      return;
+    }
+    printer(`%s ${first}`, prefix, ...rest);
+    return;
+  }
+  printer('%s', prefix, ...args);
 }
 
 const ansiWriter: Writer = (level, scope, args) => {
   const prefix = `${ansiOf(level)}${buildPrefix(level, scope)}${ANSI_RESET}`;
-  writeWithPrefix(level, '%s', [prefix], args);
+  writeWithPrefix(level, prefix, args);
 };
 
 const cssWriter: Writer = (level, scope, args) => {
-  writeWithPrefix(
-    level,
-    '%c%s%c',
-    [cssOf(level), buildPrefix(level, scope), ''],
-    args,
-  );
+  writeWithPrefix(level, buildPrefix(level, scope), args, cssOf(level));
 };
 
 const plainWriter: Writer = (level, scope, args) => {
-  writeWithPrefix(level, '%s', [buildPrefix(level, scope)], args);
+  writeWithPrefix(level, buildPrefix(level, scope), args);
 };
 
 const writer: Writer = (() => {

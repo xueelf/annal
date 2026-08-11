@@ -59,8 +59,8 @@ afterEach(() => {
 
 const ISO_PATTERN = /^\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\]/;
 
-function prefixOf(record: CapturedRecord): string {
-  return stripAnsi(record.args[1]);
+function outputOf(record: CapturedRecord): string {
+  return stripAnsi(record.args[0]);
 }
 
 describe('Level constants', () => {
@@ -80,9 +80,9 @@ describe('Journal output', () => {
     expect(records).toHaveLength(1);
     const [record] = records;
     expect(record!.method).toBe('info');
-    expect(record!.args[0]).toBe('%s hello');
-    expect(prefixOf(record!)).toMatch(ISO_PATTERN);
-    expect(prefixOf(record!)).toEndWith('INFO -');
+    expect(record!.args).toHaveLength(1);
+    expect(outputOf(record!)).toMatch(ISO_PATTERN);
+    expect(outputOf(record!)).toEndWith('INFO - hello');
   });
 
   test('preserves console format substitutions', () => {
@@ -93,20 +93,27 @@ describe('Journal output', () => {
     expect(record!.args.slice(2)).toEqual(['world']);
   });
 
+  test('preserves percent escapes in a lone string', () => {
+    journal.info('100%%');
+
+    const [record] = records;
+    expect(record!.args).toHaveLength(1);
+    expect(outputOf(record!)).toEndWith('INFO - 100%%');
+  });
+
   test('scope is rendered between level and dash', () => {
     const log = createJournal({ scope: 'app' });
     log.warn('slow');
 
     const [record] = records;
     expect(record!.method).toBe('warn');
-    expect(prefixOf(record!)).toEndWith('WARN app -');
+    expect(outputOf(record!)).toEndWith('WARN app - slow');
   });
 
   test('prefix uses single spaces around the level label', () => {
     createJournal({ scope: 'svc' }).info('ping');
     const [record] = records;
-    // Exactly: "[<iso>] INFO svc -"
-    expect(prefixOf(record!)).toMatch(/^\[[^\]]+\] INFO svc -$/);
+    expect(outputOf(record!)).toMatch(/^\[[^\]]+\] INFO svc - ping$/);
   });
 
   test('routes each level to the matching console method', () => {
@@ -152,7 +159,7 @@ describe('Custom levels', () => {
     log.log(custom, 'note');
 
     const [record] = records;
-    expect(prefixOf(record!)).toEndWith('INFO+2 -');
+    expect(outputOf(record!)).toEndWith('INFO+2 - note');
   });
 
   test('renders a negative offset label', () => {
@@ -160,7 +167,7 @@ describe('Custom levels', () => {
     log.log(LevelDebug - 4, 'trace');
 
     const [record] = records;
-    expect(prefixOf(record!)).toEndWith('DEBUG-4 -');
+    expect(outputOf(record!)).toEndWith('DEBUG-4 - trace');
   });
 });
 
@@ -205,7 +212,7 @@ describe('Immutable derivation', () => {
 
     verbose.debug('payload');
     expect(records).toHaveLength(1);
-    expect(prefixOf(records[0]!)).toEndWith('DEBUG app:db -');
+    expect(outputOf(records[0]!)).toEndWith('DEBUG app:db - payload');
   });
 });
 
