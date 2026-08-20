@@ -17,13 +17,10 @@ import {
   LevelError,
   LevelInfo,
   LevelWarn,
-} from '../src/index.ts';
+} from '#/index';
 
 // Strip ANSI escape sequences so assertions remain platform-agnostic.
 const ANSI_ESCAPE = new RegExp(String.fromCharCode(0x1b) + '\\[[0-9;]*m', 'g');
-function stripAnsi(value: unknown): string {
-  return String(value).replace(ANSI_ESCAPE, '');
-}
 
 interface CapturedRecord {
   method: 'debug' | 'info' | 'warn' | 'error';
@@ -31,36 +28,27 @@ interface CapturedRecord {
 }
 
 let records: CapturedRecord[] = [];
-let restoreSpies: () => void = () => {};
+
+function capture(method: CapturedRecord['method']) {
+  return (...args: unknown[]) => {
+    records.push({ method, args });
+  };
+}
 
 beforeEach(() => {
   records = [];
-  const mockFor = (method: CapturedRecord['method']) =>
-    mock((...args: unknown[]) => {
-      records.push({ method, args });
-    });
-
-  const debug = spyOn(console, 'debug').mockImplementation(mockFor('debug'));
-  const info = spyOn(console, 'info').mockImplementation(mockFor('info'));
-  const warn = spyOn(console, 'warn').mockImplementation(mockFor('warn'));
-  const error = spyOn(console, 'error').mockImplementation(mockFor('error'));
-
-  restoreSpies = () => {
-    debug.mockRestore();
-    info.mockRestore();
-    warn.mockRestore();
-    error.mockRestore();
-  };
+  spyOn(console, 'debug').mockImplementation(capture('debug'));
+  spyOn(console, 'info').mockImplementation(capture('info'));
+  spyOn(console, 'warn').mockImplementation(capture('warn'));
+  spyOn(console, 'error').mockImplementation(capture('error'));
 });
 
 afterEach(() => {
-  restoreSpies();
+  mock.restore();
 });
 
-const ISO_PATTERN = /^\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\]/;
-
 function outputOf(record: CapturedRecord): string {
-  return stripAnsi(record.args[0]);
+  return String(record.args[0]).replace(ANSI_ESCAPE, '');
 }
 
 describe('Level constants', () => {
@@ -81,8 +69,9 @@ describe('Journal output', () => {
     const [record] = records;
     expect(record!.method).toBe('info');
     expect(record!.args).toHaveLength(1);
-    expect(outputOf(record!)).toMatch(ISO_PATTERN);
-    expect(outputOf(record!)).toEndWith('INFO - hello');
+    expect(outputOf(record!)).toMatch(
+      /^\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\] INFO - hello$/,
+    );
   });
 
   test('preserves console format substitutions', () => {
@@ -116,12 +105,6 @@ describe('Journal output', () => {
     const [record] = records;
     expect(record!.method).toBe('warn');
     expect(outputOf(record!)).toEndWith('WARN app - slow');
-  });
-
-  test('prefix uses single spaces around the level label', () => {
-    createJournal({ scope: 'svc' }).info('ping');
-    const [record] = records;
-    expect(outputOf(record!)).toMatch(/^\[[^\]]+\] INFO svc - ping$/);
   });
 
   test('routes each level to the matching console method', () => {
@@ -215,7 +198,6 @@ describe('Immutable derivation', () => {
 
     expect(verbose.scope).toBe('app:db');
     expect(verbose.level).toBe(LevelDebug);
-    // Parent untouched.
     expect(app.level).toBe(LevelInfo);
 
     verbose.debug('payload');
