@@ -1,8 +1,7 @@
 import { $, build, file, Glob } from 'bun';
 import { rm } from 'node:fs/promises';
 
-import { Journal, LevelDebug } from '../src/index.ts';
-
+import { Journal, LevelDebug } from '#/index';
 import { compilerOptions } from '~/tsconfig.json';
 
 const logger = new Journal({ scope: 'build', level: LevelDebug });

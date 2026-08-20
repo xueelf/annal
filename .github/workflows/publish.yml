@@ -48,5 +48,8 @@ jobs:
           FORCE_COLOR: '3'
         run: bun run build
 
+      - name: Check version
+        run: bun run scripts/check-version.ts
+
       - name: Publish
         run: npm publish --ignore-scripts
