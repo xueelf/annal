@@ -17,18 +17,17 @@ import {
   LevelError,
   LevelInfo,
   LevelWarn,
-} from '../../src/index.ts';
+} from '../src/index.ts';
 
 // Strip ANSI escape sequences so assertions remain platform-agnostic.
-const ANSI = new RegExp(String.fromCharCode(0x1b) + '\\[[0-9;]*m', 'g');
-function clean(value: unknown): string {
-  return String(value).replace(ANSI, '');
+const ANSI_ESCAPE = new RegExp(String.fromCharCode(0x1b) + '\\[[0-9;]*m', 'g');
+function stripAnsi(value: unknown): string {
+  return String(value).replace(ANSI_ESCAPE, '');
 }
 
 interface CapturedRecord {
   method: 'debug' | 'info' | 'warn' | 'error';
-  prefix: string;
-  rest: unknown[];
+  args: unknown[];
 }
 
 let records: CapturedRecord[] = [];
@@ -36,15 +35,15 @@ let restoreSpies: () => void = () => {};
 
 beforeEach(() => {
   records = [];
-  const make = (method: CapturedRecord['method']) =>
-    mock((prefix: unknown, ...rest: unknown[]) => {
-      records.push({ method, prefix: clean(prefix), rest });
+  const mockFor = (method: CapturedRecord['method']) =>
+    mock((...args: unknown[]) => {
+      records.push({ method, args });
     });
 
-  const debug = spyOn(console, 'debug').mockImplementation(make('debug'));
-  const info = spyOn(console, 'info').mockImplementation(make('info'));
-  const warn = spyOn(console, 'warn').mockImplementation(make('warn'));
-  const error = spyOn(console, 'error').mockImplementation(make('error'));
+  const debug = spyOn(console, 'debug').mockImplementation(mockFor('debug'));
+  const info = spyOn(console, 'info').mockImplementation(mockFor('info'));
+  const warn = spyOn(console, 'warn').mockImplementation(mockFor('warn'));
+  const error = spyOn(console, 'error').mockImplementation(mockFor('error'));
 
   restoreSpies = () => {
     debug.mockRestore();
@@ -59,6 +58,10 @@ afterEach(() => {
 });
 
 const ISO_PATTERN = /^\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\]/;
+
+function outputOf(record: CapturedRecord): string {
+  return stripAnsi(record.args[0]);
+}
 
 describe('Level constants', () => {
   test('match the slog numeric scheme', () => {
@@ -77,9 +80,25 @@ describe('Journal output', () => {
     expect(records).toHaveLength(1);
     const [record] = records;
     expect(record!.method).toBe('info');
-    expect(record!.prefix).toMatch(ISO_PATTERN);
-    expect(record!.prefix).toEndWith('INFO -');
-    expect(record!.rest).toEqual(['hello']);
+    expect(record!.args).toHaveLength(1);
+    expect(outputOf(record!)).toMatch(ISO_PATTERN);
+    expect(outputOf(record!)).toEndWith('INFO - hello');
+  });
+
+  test('preserves console format substitutions', () => {
+    journal.info('hello %s', 'world');
+
+    const [record] = records;
+    expect(record!.args[0]).toBe('%s hello %s');
+    expect(record!.args.slice(2)).toEqual(['world']);
+  });
+
+  test('preserves percent escapes in a lone string', () => {
+    journal.info('100%%');
+
+    const [record] = records;
+    expect(record!.args).toHaveLength(1);
+    expect(outputOf(record!)).toEndWith('INFO - 100%%');
   });
 
   test('scope is rendered between level and dash', () => {
@@ -88,14 +107,13 @@ describe('Journal output', () => {
 
     const [record] = records;
     expect(record!.method).toBe('warn');
-    expect(record!.prefix).toEndWith('WARN app -');
+    expect(outputOf(record!)).toEndWith('WARN app - slow');
   });
 
   test('prefix uses single spaces around the level label', () => {
     createJournal({ scope: 'svc' }).info('ping');
     const [record] = records;
-    // Exactly: "[<iso>] INFO svc -"
-    expect(record!.prefix).toMatch(/^\[[^\]]+\] INFO svc -$/);
+    expect(outputOf(record!)).toMatch(/^\[[^\]]+\] INFO svc - ping$/);
   });
 
   test('routes each level to the matching console method', () => {
@@ -141,7 +159,7 @@ describe('Custom levels', () => {
     log.log(custom, 'note');
 
     const [record] = records;
-    expect(record!.prefix).toEndWith('INFO+2 -');
+    expect(outputOf(record!)).toEndWith('INFO+2 - note');
   });
 
   test('renders a negative offset label', () => {
@@ -149,7 +167,7 @@ describe('Custom levels', () => {
     log.log(LevelDebug - 4, 'trace');
 
     const [record] = records;
-    expect(record!.prefix).toEndWith('DEBUG-4 -');
+    expect(outputOf(record!)).toEndWith('DEBUG-4 - trace');
   });
 });
 
@@ -194,17 +212,17 @@ describe('Immutable derivation', () => {
 
     verbose.debug('payload');
     expect(records).toHaveLength(1);
-    expect(records[0]!.prefix).toEndWith('DEBUG app:db -');
+    expect(outputOf(records[0]!)).toEndWith('DEBUG app:db - payload');
   });
 });
 
 describe('Construction', () => {
   test('createJournal and new Journal are equivalent', () => {
-    const a = createJournal({ scope: 'x', level: LevelWarn });
-    const b = new Journal({ scope: 'x', level: LevelWarn });
+    const created = createJournal({ scope: 'x', level: LevelWarn });
+    const constructed = new Journal({ scope: 'x', level: LevelWarn });
 
-    expect(a.scope).toBe(b.scope);
-    expect(a.level).toBe(b.level);
+    expect(created.scope).toBe(constructed.scope);
+    expect(created.level).toBe(constructed.level);
   });
 
   test('default options yield LevelInfo and an empty scope', () => {
