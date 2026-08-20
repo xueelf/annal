@@ -109,7 +109,7 @@ function cssOf(level: Level): string {
   return 'color:#06b6d4;font-weight:bold';
 }
 
-function consoleMethod(level: Level): (...args: unknown[]) => void {
+function printerFor(level: Level): (...args: unknown[]) => void {
   if (level >= LevelError) {
     return console.error;
   }
@@ -125,24 +125,52 @@ function consoleMethod(level: Level): (...args: unknown[]) => void {
 type Writer = (level: Level, scope: string, args: unknown[]) => void;
 
 function buildPrefix(level: Level, scope: string): string {
-  const time = new Date().toISOString();
+  const timestamp = new Date().toISOString();
   const label = levelLabel(level);
   const tail = scope ? `${scope} -` : '-';
 
-  return `[${time}] ${label} ${tail}`;
+  return `[${timestamp}] ${label} ${tail}`;
+}
+
+function writeWithPrefix(
+  level: Level,
+  prefix: string,
+  args: unknown[],
+  style?: string,
+): void {
+  const printer = printerFor(level);
+  const [first, ...rest] = args;
+
+  if (style !== undefined) {
+    if (typeof first === 'string') {
+      printer(`%c%s%c ${first}`, style, prefix, '', ...rest);
+      return;
+    }
+    printer('%c%s%c', style, prefix, '', ...args);
+    return;
+  }
+  if (typeof first === 'string') {
+    if (rest.length === 0) {
+      printer(`${prefix} ${first}`);
+      return;
+    }
+    printer(`%s ${first}`, prefix, ...rest);
+    return;
+  }
+  printer('%s', prefix, ...args);
 }
 
 const ansiWriter: Writer = (level, scope, args) => {
   const prefix = `${ansiOf(level)}${buildPrefix(level, scope)}${ANSI_RESET}`;
-  consoleMethod(level)(prefix, ...args);
+  writeWithPrefix(level, prefix, args);
 };
 
 const cssWriter: Writer = (level, scope, args) => {
-  consoleMethod(level)(`%c${buildPrefix(level, scope)}`, cssOf(level), ...args);
+  writeWithPrefix(level, buildPrefix(level, scope), args, cssOf(level));
 };
 
 const plainWriter: Writer = (level, scope, args) => {
-  consoleMethod(level)(buildPrefix(level, scope), ...args);
+  writeWithPrefix(level, buildPrefix(level, scope), args);
 };
 
 const writer: Writer = (() => {
