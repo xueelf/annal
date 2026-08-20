@@ -101,6 +101,14 @@ describe('Journal output', () => {
     expect(outputOf(record!)).toEndWith('INFO - 100%%');
   });
 
+  test('emits ANSI colors and resets as a pair', () => {
+    journal.info('hello');
+
+    const [record] = records;
+    const output = String(record!.args[0]);
+    expect(output.includes('\u001b[0m')).toBe(output.startsWith('\u001b['));
+  });
+
   test('scope is rendered between level and dash', () => {
     const log = createJournal({ scope: 'app' });
     log.warn('slow');

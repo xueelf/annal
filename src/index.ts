@@ -161,8 +161,9 @@ function writeWithPrefix(
 }
 
 const ansiWriter: Writer = (level, scope, args) => {
-  const prefix = `${ansiOf(level)}${buildPrefix(level, scope)}${ANSI_RESET}`;
-  writeWithPrefix(level, prefix, args);
+  const ansi = ansiOf(level);
+  const prefix = buildPrefix(level, scope);
+  writeWithPrefix(level, ansi ? `${ansi}${prefix}${ANSI_RESET}` : prefix, args);
 };
 
 const cssWriter: Writer = (level, scope, args) => {
